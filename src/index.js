@@ -1,17 +1,18 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React from "react";
+import {render} from 'react-dom';
+import {ThemeProvider} from "@chakra-ui/core";
+import Header from "./Components/Header";
+import Todos from "./Components/Todos";
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+function App({ children }) {
+    return (
+        <ThemeProvider>
+            <Header />
+            <Todos />
+            {children}
+        </ThemeProvider>
+    )
+}
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+const rootElement = document.getElementById("root");
+render(<App />, rootElement)
