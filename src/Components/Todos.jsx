@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {v4 as uuidv4} from 'uuid';
 import {
     Box,
@@ -18,8 +18,14 @@ import {
     useDisclosure
 } from "@chakra-ui/core";
 
+const TodosContext = React.createContext({
+    todos: [], fetchTodos: () => {
+    }
+})
+
 function AddTodo() {
     const [item, setItem] = React.useState("")
+    const {fetchTodos} = React.useContext(TodosContext)
 
     const handleInput = e => {
         setItem(e.target.value)
@@ -31,13 +37,13 @@ function AddTodo() {
             "item": item
         }
 
-        return fetch('http://localhost:8000/todo', {
+        fetch('http://localhost:8000/todo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(newTodo)
-        })
+        }).then(fetchTodos)
     }
 
     return (
@@ -58,9 +64,9 @@ function AddTodo() {
 function UpdateTodo({item, id}) {
     const {isOpen, onOpen, onClose} = useDisclosure()
     const [todo, setTodo] = useState(item)
+    const {fetchTodos} = React.useContext(TodosContext)
 
     const updateTodo = async () => {
-        console.log(id)
         await fetch(`http://localhost:8000/todo/${id}`, {
             method: 'PUT',
             headers: {
@@ -71,7 +77,7 @@ function UpdateTodo({item, id}) {
             })
         })
         onClose()
-        return window.location.reload()
+        await fetchTodos()
     }
 
     return (
@@ -105,6 +111,8 @@ function UpdateTodo({item, id}) {
 }
 
 function DeleteTodo({id}) {
+    const {fetchTodos} = React.useContext(TodosContext)
+
     const deleteTodo = async () => {
         await fetch(`http://localhost:8000/todo/${id}`, {
             method: 'DELETE',
@@ -115,22 +123,22 @@ function DeleteTodo({id}) {
                 "id": id
             }
         })
-        return window.location.reload()
+        await fetchTodos()
     }
     return (
         <Button h="1.5rem" size="sm" onClick={deleteTodo}>Delete Todo</Button>
     )
 }
 
-function TodoHelper({item, id}) {
+function TodoHelper({item, id, fetchTodos}) {
     return (
         <Box p={1} shadow="sm">
             <Flex justify="space-between">
                 <Text mt={4} as="div">
                     {item}
                     <Flex align="end">
-                        <UpdateTodo item={item} id={id}/>
-                        <DeleteTodo id={id} />
+                        <UpdateTodo item={item} id={id} fetchTodos={fetchTodos}/>
+                        <DeleteTodo id={id} fetchTodos={fetchTodos}/>
                     </Flex>
                 </Text>
             </Flex>
@@ -140,25 +148,22 @@ function TodoHelper({item, id}) {
 
 export default function Todos() {
     const [todos, setTodos] = React.useState([])
-
-    const fetchTodos = useCallback(async () => {
+    const fetchTodos = async () => {
         const response = await fetch('http://localhost:8000/todo')
         const todos = await response.json()
         setTodos(todos.data)
-    }, [])
-
+    }
     useEffect(() => {
         fetchTodos()
-    }, [fetchTodos])
-
+    }, [])
     return (
-        <>
-            <AddTodo />
+        <TodosContext.Provider value={{todos, fetchTodos}}>
+            <AddTodo/>
             <Stack spacing={5}>
                 {todos.map((todo) => (
-                    <TodoHelper item={todo.item} id={todo.id}/>
+                    <TodoHelper item={todo.item} id={todo.id} fetchTodos={fetchTodos}/>
                 ))}
             </Stack>
-        </>
+        </TodosContext.Provider>
     )
 }
